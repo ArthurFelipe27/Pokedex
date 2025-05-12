@@ -1,5 +1,4 @@
 let pokemonImages = [];
-let corredorDeImagens = 0;
 const tipoPokemon = {
   electric: 'Elétrico',
   psychic: 'Psíquico',
@@ -13,7 +12,7 @@ const tipoPokemon = {
   fairy: 'Fada',
   dragon: 'Dragão',
   poison: 'Venenoso',
-  flying: 'Voando',
+  flying: 'Voador',
   ice: 'Gelo',
   steel: 'Aço',
   dark: 'Sombrio',
@@ -28,41 +27,73 @@ function traduzirTipos(types) {
 
 async function getPokemon() {
   const id = document.getElementById('pokemonId').value;
+  //API do Pokemon
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+  //API do Sexo
+  const speciesResponse = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`);
+  const speciesData = await speciesResponse.json();
+  
+  let sexo;
+  switch (speciesData.gender_rate) {
+    case -1:
+      sexo = 'Sem gênero';
+      break;
+    case 0:
+      sexo = 'Macho';
+      break;
+    case 8:
+      sexo = 'Fêmea';
+      break;
+    default:
+      sexo = 'Macho e Fêmea';
+      break;
+  }
+
   if (response.ok) {
     const data = await response.json();
 
-  const pokemonTrduzidos = traduzirTipos(data.types.map(t => t.type.name));
+    const pokemonTraduzidos = traduzirTipos(data.types.map(t => t.type.name));
 
+    
     pokemonImages = [
       data.sprites.front_default,
       data.sprites.back_default,
       data.sprites.front_shiny,
       data.sprites.back_shiny,
-    ];
+    ].filter(img => img); 
 
-    corredorDeImagens = 0;
+    
+    const animation = data.sprites.versions["generation-v"]['black-white']?.animated?.front_default;
+    if (animation) {
+      pokemonImages.push(animation); 
+    }
 
     document.getElementById('pokemonInfo').innerHTML = `
       <h2>${data.name.toUpperCase()}</h2>
-      <img id="pokemonImage" src="${pokemonImages[corredorDeImagens]}" alt="${data.name}">
+
+      <div id="carrosselPokemon" class="carousel slide" data-bs-ride="carousel">
+        <div class="carousel-inner">
+          ${pokemonImages.map((img, index) => `
+            <div class="carousel-item ${index === 0 ? 'active' : ''}">
+              <img src="${img}" class="d-block w-100" alt="${data.name}">
+            </div>`).join('')}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#carrosselPokemon" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#carrosselPokemon" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Próximo</span>
+        </button>
+      </div>
+
       <p><strong>Altura:</strong> ${data.height / 10} m</p>
       <p><strong>Peso:</strong> ${data.weight / 10} kg</p>
-      <p><strong>Tipos:</strong> ${pokemonTrduzidos.join(', ')}</p>
+      <p><strong>Tipos:</strong> ${pokemonTraduzidos.join(', ')}</p>
+      <p><strong>Sexo:</strong> ${sexo}</p>
     `;
   } else {
     document.getElementById('pokemonInfo').innerHTML = '<p>Pokémon não encontrado.</p>';
   }
-}
-
-function passarImagem(direcao) {
-  if (direcao == 'proxima') {
-    corredorDeImagens = (corredorDeImagens + 1) % pokemonImages.length;
-  } else if (direcao == 'anterior') {
-    corredorDeImagens = (corredorDeImagens - 1 + pokemonImages.length) % pokemonImages.length; 
-  }
-
-  const pokemonImage = document.getElementById('pokemonImage');
-  pokemonImage.src = pokemonImages[corredorDeImagens];
-  
 }
